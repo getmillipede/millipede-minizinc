@@ -1,8 +1,16 @@
 % millipede parts as per the RFC in https://github.com/getmillipede/millipede-rfc/
 enum PART = {EYE, CHEST, CHESTLEFT, CHESTRIGHT, MANDIBLELEFT, MANDIBLERIGHT, LEGLEFT, LEGRIGHT, LEGPART};
-int: width = 12; % size of the board
-int: height = 8; % size of the board
+int: width = 14; % size of the board
+int: height = 10; % size of the board
 int: length = 7; % length of the body of the millipede
+
+% our millipede lives in a world with obstacles
+int: nObstacles = 3;
+set of int: OBSTACLES = 1..nObstacles;
+array[OBSTACLES,1..2] of int: obstacles = [| 1,1
+                                           | 3,3
+                                           | 10,8
+                                           |];
 
 % decision variables
 set of int: PART0 = 0..(length(PART));
@@ -58,11 +66,24 @@ constraint forall(c in 1..length)
 constraint millipede[eyesX[0], bodylinesY[1]] = CHEST;
 constraint millipede[eyesX[1], bodylinesY[1]] = CHEST;
 
+% dodging obstacles
+constraint forall(o in OBSTACLES)
+  (let { int: oX = obstacles[o,1], int: oY = obstacles[o,2] }
+  in millipede[oX,oY] = 0
+  );
+
 % search hints
 solve ::int_search([headY], first_fail, indomain_min, complete)
   satisfy;
  
-% display
+% display obstacles
+array[XDX,YDX] of var 0..nObstacles: displayObstacle;
+constraint sum(x in XDX, y in YDX)(displayObstacle[x,y]>0) = nObstacles;
+constraint forall(x in XDX, y in YDX)
+  (displayObstacle[x,y] > 0 <-> (obstacles[displayObstacle[x,y],1] = x /\ obstacles[displayObstacle[x,y],2] = y));
+
 array[PART0] of string: display =
   array1d(PART0,[" ", "⊙", "█", "(", ")", "╚", "╝", "╚", "╝", "═"]);
-output [ concat([ display[fix(millipede[x,y])] | x in XDX]) ++ "\n" | y in YDX ] ;
+output [ concat([ if fix(displayObstacle[x,y]) > 0 then "x" else display[fix(millipede[x,y])] endif | x in XDX]) ++ "\n" | y in YDX ]
+%   ++ ["\n\(displayObstacle)"]
+  ;

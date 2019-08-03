@@ -16,3 +16,5 @@ $ minizinc millipede.mzn
 # find all millipedes
 $ minizinc -a millipede.mzn
 ```
+
+Marvel at how our millipede dodges obstacles.
